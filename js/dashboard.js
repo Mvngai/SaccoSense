@@ -6,7 +6,8 @@
    All data comes from SaccoData (js/data.js).
    ===================================================================== */
 
-(function () {
+// wait until data.js knows who is logged in (see SaccoData.ready)
+SaccoData.ready.then(function () {
     "use strict";
 
     // app.js is already redirecting to the login page
@@ -407,4 +408,4 @@
         await renderStats();
         renderTable();
     })();
-})();
+});

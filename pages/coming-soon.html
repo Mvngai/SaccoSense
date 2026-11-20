@@ -28,9 +28,12 @@
         </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+    <script src="../js/supabase-config.js"></script>
     <script src="../js/data.js"></script>
     <script>
-        (function () {
+        // wait until data.js knows who is logged in
+        SaccoData.ready.then(function () {
             // show the page name from the link, e.g. ?page=Members
             const name = new URLSearchParams(window.location.search).get("page");
             if (name) {
@@ -53,7 +56,7 @@
                     window.location.href = homeLink.href;
                 }
             });
-        })();
+        });
     </script>
 </body>
 </html>

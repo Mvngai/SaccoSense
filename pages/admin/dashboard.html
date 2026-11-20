@@ -121,9 +121,6 @@
                             <i class="fa-regular fa-user" aria-hidden="true"></i> Profile</a>
                         <a href="../coming-soon.html?page=Settings" class="dropdown-item">
                             <i class="fa-solid fa-gear" aria-hidden="true"></i> Settings</a>
-                        <!-- TESTING ONLY: remove when Supabase is connected -->
-                        <button type="button" class="dropdown-item" data-action="reset-data">
-                            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reset sample data</button>
                         <div class="dropdown-divider"></div>
                         <button type="button" class="dropdown-item danger" data-action="logout">
                             <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Logout</button>
@@ -332,7 +329,9 @@
     </dialog>
 
 
-    <!-- Scripts: data layer -> shared shell -> this page -->
+    <!-- Scripts: Supabase library -> connection settings -> data layer -> shared shell -> this page -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
+    <script src="../../js/supabase-config.js" defer></script>
     <script src="../../js/data.js" defer></script>
     <script src="../../js/app.js" defer></script>
     <script src="../../js/dashboard.js" defer></script>

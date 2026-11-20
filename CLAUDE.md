@@ -193,7 +193,7 @@ Before building anything ask questions (suggections are allowed) until a mutual 
 
 ## 10. Current Status / Next Steps
 
-**Last updated: 17 November 2026**
+**Last updated: 21 November 2026**
 
 ### Completed
 - Created the SaccoSense landing page (`index.html` and `style.css`).
@@ -220,28 +220,35 @@ Before building anything ask questions (suggections are allowed) until a mutual 
   - Notifications gained `member_id`.
   - New `getMyAccount()` returns only the logged-in member's data.
   - A completed repayment recorded by the admin now reduces the member's loan balance.
-- Member login: choosing "Member" requires an email that belongs to a sample member. The example member is **Brian Odhiambo, `brian.odhiambo@example.com`, SS-0011**, with loan LN-0007 (80% repaid). Unknown emails show an error.
+- Member login (superseded on 21 Nov by Supabase Auth, below). The example member is **Brian Odhiambo, `brian.odhiambo@example.com`, SS-0011**, with loan LN-0007 (80% repaid).
+- **Supabase connected (20–21 November 2026, done as a fast "speed run"; not yet fully understood by me, see next steps):**
+  - `supabase/schema.sql`: tables `members`, `transactions`, `loans`, `notifications`, `profiles` (holds each login's role: admin/member + `member_id`); helper functions `is_admin()` and `my_member_id()`; RLS policies (admins read everything, members read only their own rows, anon reads nothing); DB functions `record_transaction()` (validates, saves and updates balances/loan in one step) and `mark_notifications_read()`; the same sample data as before. Run once in the Supabase SQL Editor.
+  - `supabase/link-users.sql`: gives Auth users a role (admin by email, members by matching `members.email`). Run after creating users.
+  - `js/supabase-config.js`: Project URL + publishable key (public by design; the service_role key must never go here).
+  - `js/data.js`: same `SaccoData` function names, now Supabase queries. Adds `SaccoData.ready` (Promise that resolves once the logged-in user and role are loaded) and `signIn()`. "Reset sample data" removed.
+  - `js/login.js`: real email + password login; role comes from the `profiles` table, and the selected Admin/Member tab must match it.
+  - `js/app.js`, `js/dashboard.js`, `js/member-dashboard.js`, `pages/coming-soon.html` wait for `SaccoData.ready` before running.
+  - supabase-js 2.45.4 loaded from the jsDelivr CDN on each page.
+  - Test accounts (created in Supabase Auth): `admin@example.com` (admin, Grace Wanjiku) and `brian.odhiambo@example.com` (member SS-0011). Passwords are known only to me, not stored in the project.
+  - Tested in the browser: admin login and dashboard, recording a transaction (persists after refresh), member login showing only Brian's data, wrong-role and wrong-password errors.
 
 ### Current stage
-Stages 1–3 (login, admin dashboard, member dashboard) are built as a **frontend prototype running on sample data**. The member dashboard has passed JavaScript syntax checks and data-layer checks, but has not yet been checked visually in a browser. Nothing is connected to Supabase yet:
-- Login doesn't check passwords; the role comes from the selector (members must use a known member email).
-- All data lives only in the browser's `localStorage`.
+Stages 1–3 (login, admin dashboard, member dashboard) now run on **Supabase** with real authentication and RLS. Data lives in the Supabase PostgreSQL database, not `localStorage`.
 
 ### Outstanding issues / notes
-- **Authentication is not real.** The role guard in `app.js` only checks the browser session, so it is not security. This must be replaced by Supabase Auth plus Row Level Security (RLS) before any real data is used.
-- The admin name ("Grace Wanjiku") and all members, transactions and loans are hard-coded sample data.
+- **Understanding gap:** the Supabase connection was done quickly for a deadline. I still need a walkthrough of how it works (see next steps) before I can explain or rebuild it.
+- New members can't get a login yet. Agreed plan for stage 4 (option A): admin adds the member record; the member activates their own account on an "Activate account" page (Supabase signUp); a DB trigger links the login to the member record only if the email matches. Keep "Allow new users to sign up" ON and email confirmation ON for this.
+- Supabase project credentials: only the URL and publishable key are in the project (`js/supabase-config.js`). A `.env` file isn't usable without a build tool; revisit if a build step is added later.
 - The repayment rate uses simple instalment counts stored on each loan record. It will need a proper repayment schedule table later.
 - The project folder is not yet a Git repository, so nothing has been pushed to GitHub and nothing is deployed on Vercel.
-- No `.env` file exists yet. Create one, and keep it out of Git, when Supabase keys are introduced.
-- Member data separation is currently enforced only in the browser (`getMyAccount()`). Every record still sits in `localStorage`, so this isn't real security until Supabase RLS is in place.
 - Recording a repayment doesn't yet move a loan's `next_due_date` forward or update instalment counts. That belongs to Repayment Tracking (stage 8).
 - Sample due dates are fixed (e.g. Brian's is 20/11/2026), so the Next Repayment card will show "overdue" once those dates pass.
+- Member dashboard mobile layout still to be checked in the browser.
 
 ### Next steps
-1. **Immediate:** check the member dashboard in the browser. Log in as Member with `brian.odhiambo@example.com`, then check the cards, table, filters, search, pagination, details pop-up, notifications and mobile layout.
-2. Connect Supabase (agreed order: right after the member dashboard, before member management). Create tables matching the `data.js` record shapes (members, transactions, loans, notifications), set up Supabase Auth with roles, add RLS so members can only read their own rows, and replace the `SaccoData` function bodies with Supabase queries.
-3. Build member management (stage 4), so admins can add members who can then log in.
-4. Set up the Git repository and GitHub (with your clearance before pushing).
-5. Continue with savings, loans, guarantors, repayments and reports in the agreed order.
+1. **Immediate: learning session on the Supabase connection** (before building more): the client/server picture, tables and `profiles`, Supabase Auth, RLS policies, `SaccoData.ready`/async, `record_transaction()`. Goal: be able to explain and rebuild it.
+2. Build member management (stage 4), including the account activation flow above.
+3. Set up the Git repository and GitHub (with my clearance before pushing).
+4. Continue with savings, loans, guarantors, repayments and reports in the agreed order.
 
 **Update this section (10) at the end of every development session.** Record what was completed, the current state of the project, outstanding issues and the immediate next task. Do not assume a feature is complete merely because its frontend has been created.

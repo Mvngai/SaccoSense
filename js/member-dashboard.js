@@ -7,7 +7,8 @@
    returns the logged-in member's own data.
    ===================================================================== */
 
-(function () {
+// wait until data.js knows who is logged in (see SaccoData.ready)
+SaccoData.ready.then(function () {
     "use strict";
 
     // app.js is already redirecting to the login page
@@ -311,4 +312,4 @@
         renderStats();
         renderTable();
     })();
-})();
+});

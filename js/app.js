@@ -6,9 +6,12 @@
    - top bar: notifications + profile dropdowns, logout, reset data
    - small helpers every page can use (SaccoUI)
    Load order on a page: data.js -> app.js -> page script.
+
+   Everything waits for SaccoData.ready, because checking the Supabase
+   login takes a moment (it's a network request).
    ===================================================================== */
 
-(function () {
+SaccoData.ready.then(function () {
     "use strict";
 
     const body = document.body;
@@ -208,21 +211,9 @@
     });
 
     document.querySelectorAll('[data-action="logout"]').forEach(function (button) {
-        button.addEventListener("click", function () {
-            SaccoData.signOut();
-            window.location.href = loginUrl;
-        });
-    });
-
-    // TESTING ONLY: remove when Supabase is connected
-    document.querySelectorAll('[data-action="reset-data"]').forEach(function (button) {
         button.addEventListener("click", async function () {
-            const ok = window.confirm(
-                "This will undo all your changes and restore the original sample data. Continue?"
-            );
-            if (!ok) return;
-            await SaccoData.resetData();
-            window.location.reload();
+            await SaccoData.signOut();
+            window.location.href = loginUrl;
         });
     });
 
@@ -281,4 +272,4 @@
     }
 
     renderNotifications();
-})();
+});

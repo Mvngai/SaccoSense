@@ -21,42 +21,41 @@ togglePassword.addEventListener("click", function () {
 const loginForm = document.getElementById("loginForm");
 const loginMessage = document.getElementById("loginMessage");
 
-// TEMPORARY: passwords are not checked and the role comes from the selector.
-// Members must use an email that belongs to a member (e.g.
-// brian.odhiambo@example.com) so we know whose dashboard to show.
-// Replace this with Supabase Auth (and roles stored in the database)
-// when the backend is connected.
+// Real login through Supabase Auth (SaccoData.signIn in data.js).
+// Supabase checks the password. The user's ROLE comes from the database
+// (profiles table), not from the Admin/Member selector, so nobody can
+// make themselves an admin by picking "Admin".
+
+function showLoginError(text) {
+    loginMessage.textContent = text;
+    loginMessage.classList.add("error");
+}
 
 loginForm.addEventListener("submit", async function (event) {
     event.preventDefault();
 
-    const role = loginForm.querySelector('input[name="role"]:checked').value;
+    const chosenRole = loginForm.querySelector('input[name="role"]:checked').value;
     const email = document.getElementById("email").value.trim();
+    const password = passwordInput.value;
+    // "Remember me" keeps the user logged in after the browser closes
     const remember = loginForm.querySelector('input[name="remember"]').checked;
 
     loginMessage.classList.remove("error");
-
-    if (role === "member") {
-        const member = await SaccoData.findMemberByEmail(email);
-        if (!member) {
-            loginMessage.textContent = "No member account uses this email address.";
-            loginMessage.classList.add("error");
-            return;
-        }
-    }
-
-    // "Remember me" keeps the session after the browser closes;
-    // otherwise it lasts only for this tab.
-    const session = JSON.stringify({ role: role, email: email });
-    localStorage.removeItem("saccosense_session");
-    sessionStorage.removeItem("saccosense_session");
-    (remember ? localStorage : sessionStorage).setItem("saccosense_session", session);
-
     loginMessage.textContent = "Signing you in...";
 
-    if (role === "admin") {
-        window.location.href = "admin/dashboard.html";
-    } else {
-        window.location.href = "member/dashboard.html";
+    try {
+        const user = await SaccoData.signIn(email, password, remember);
+
+        // the selected tab must match the account's real role
+        if (user.role !== chosenRole) {
+            await SaccoData.signOut();
+            showLoginError("This is not " + (chosenRole === "admin" ? "an administrator" : "a member") +
+                " account. Please choose the correct role.");
+            return;
+        }
+
+        window.location.href = user.role === "admin" ? "admin/dashboard.html" : "member/dashboard.html";
+    } catch (error) {
+        showLoginError(error.message);
     }
 });
