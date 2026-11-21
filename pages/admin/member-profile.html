@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member Profile | SaccoSense</title>
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Shared app layout -> shared table/modal/badge styles -> member pages -->
+    <link rel="stylesheet" href="../../css/app.css">
+    <link rel="stylesheet" href="../../css/dashboard.css">
+    <link rel="stylesheet" href="../../css/members.css">
+</head>
+
+<!-- ONE page for every member: the member ID comes from the link,
+     e.g. member-profile.html?id=SS-0011, and member-profile.js fills it in.
+     data-page="members" keeps "Members" highlighted in the sidebar. -->
+<body data-required-role="admin" data-login-url="../login.html" data-page="members">
+
+    <!-- ==============================
+                SIDEBAR
+    =============================== -->
+
+    <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+
+        <a href="dashboard.html" class="sidebar-brand">
+            <span class="brand-full">SaccoSense</span>
+            <span class="brand-short" aria-hidden="true">SS</span>
+        </a>
+
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="dashboard.html" class="sidebar-link" data-page="dashboard">
+                    <i class="fa-solid fa-gauge-high" aria-hidden="true"></i><span>Dashboard</span></a></li>
+                <li><a href="members.html" class="sidebar-link" data-page="members">
+                    <i class="fa-solid fa-users" aria-hidden="true"></i><span>Members</span></a></li>
+                <li><a href="../coming-soon.html?page=Savings" class="sidebar-link" data-page="savings">
+                    <i class="fa-solid fa-piggy-bank" aria-hidden="true"></i><span>Savings</span></a></li>
+                <li><a href="../coming-soon.html?page=Loans" class="sidebar-link" data-page="loans">
+                    <i class="fa-solid fa-hand-holding-dollar" aria-hidden="true"></i><span>Loans</span></a></li>
+                <li><a href="../coming-soon.html?page=Guarantors" class="sidebar-link" data-page="guarantors">
+                    <i class="fa-solid fa-user-shield" aria-hidden="true"></i><span>Guarantors</span></a></li>
+                <li><a href="../coming-soon.html?page=Repayments" class="sidebar-link" data-page="repayments">
+                    <i class="fa-solid fa-calendar-check" aria-hidden="true"></i><span>Repayments</span></a></li>
+                <li><a href="../coming-soon.html?page=Reports" class="sidebar-link" data-page="reports">
+                    <i class="fa-solid fa-chart-column" aria-hidden="true"></i><span>Reports</span></a></li>
+            </ul>
+
+            <div class="sidebar-bottom">
+                <div class="sidebar-divider"></div>
+                <ul>
+                    <li><a href="../coming-soon.html?page=Settings" class="sidebar-link" data-page="settings">
+                        <i class="fa-solid fa-gear" aria-hidden="true"></i><span>Settings</span></a></li>
+                    <li><button type="button" class="sidebar-link" data-action="logout">
+                        <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i><span>Logout</span></button></li>
+                </ul>
+            </div>
+        </nav>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+
+    <div class="app-main">
+
+        <!-- ==============================
+                    TOP BAR
+        =============================== -->
+
+        <header class="topbar">
+
+            <button type="button" class="icon-button" id="sidebarToggle"
+                    aria-label="Toggle menu" aria-controls="sidebar" aria-expanded="true">
+                <i class="fa-solid fa-bars" aria-hidden="true"></i>
+            </button>
+
+            <div class="topbar-title">
+                <h1>Member Management</h1>
+            </div>
+
+            <!-- Avatar only, pushed to the right -->
+            <div class="topbar-actions push-right">
+                <div class="dropdown">
+                    <button type="button" class="profile-button" data-dropdown="profileMenu"
+                            aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
+                        <span class="avatar" data-user-initials></span>
+                    </button>
+
+                    <div class="dropdown-menu small" id="profileMenu" hidden>
+                        <div class="dropdown-user">
+                            <strong data-user-name></strong>
+                            <span>Administrator</span>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a href="../coming-soon.html?page=Settings" class="dropdown-item">
+                            <i class="fa-solid fa-gear" aria-hidden="true"></i> Settings</a>
+                        <button type="button" class="dropdown-item danger" data-action="logout">
+                            <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Logout</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+
+        <main class="page-content">
+
+            <a href="members.html" class="back-link">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to members
+            </a>
+
+            <!-- Shown while loading, or if the member ID in the link doesn't exist -->
+            <div class="panel profile-message" id="profileMessage">
+                <p>Loading member profile...</p>
+            </div>
+
+            <!-- Filled in by member-profile.js once the member is loaded -->
+            <div id="profileContent" hidden>
+
+                <!-- ==============================
+                         NAME + MEMBER ID
+                =============================== -->
+
+                <section class="panel profile-header" aria-labelledby="profileName">
+                    <span class="avatar avatar-lg" id="profileInitials" aria-hidden="true"></span>
+
+                    <div class="profile-identity">
+                        <h2 id="profileName"></h2>
+                        <p>
+                            <span class="cell-id" id="profileMemberId"></span>
+                            <span id="profileStatus"></span>
+                        </p>
+                        <p class="profile-joined" id="profileJoined"></p>
+                    </div>
+
+                    <div class="profile-actions">
+                        <button type="button" class="btn btn-secondary" id="openEditMember">
+                            <i class="fa-solid fa-pen" aria-hidden="true"></i> Edit
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="toggleStatusButton"></button>
+                    </div>
+                </section>
+
+
+                <div class="profile-grid">
+
+                    <!-- ==============================
+                           PERSONAL INFORMATION
+                    =============================== -->
+
+                    <section class="panel profile-section" aria-labelledby="personalHeading">
+                        <h3 id="personalHeading">
+                            <i class="fa-regular fa-id-card" aria-hidden="true"></i> Personal Information
+                        </h3>
+                        <dl class="detail-list" id="personalDetails"></dl>
+                    </section>
+
+
+                    <!-- ==============================
+                           FINANCIAL OVERVIEW
+                           (summary only; full history lives in
+                            the Savings / Loans pages later)
+                    =============================== -->
+
+                    <section class="panel profile-section" aria-labelledby="financialHeading">
+                        <h3 id="financialHeading">
+                            <i class="fa-solid fa-chart-pie" aria-hidden="true"></i> Financial Overview
+                        </h3>
+                        <div class="overview-grid" id="financialOverview"></div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+
+    <!-- ==============================
+            EDIT MEMBER (pop-up)
+    =============================== -->
+
+    <dialog class="modal" id="editMemberDialog" aria-labelledby="editMemberTitle">
+        <form id="editMemberForm" novalidate>
+            <div class="modal-header">
+                <h2 id="editMemberTitle">Edit Member Details</h2>
+                <button type="button" class="icon-button" data-close-dialog aria-label="Close">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <p class="form-intro">
+                    Fields marked <span class="required-mark">*</span> are required.
+                    The Member ID and savings balance cannot be edited.
+                </p>
+
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label for="editFullName">Full name <span class="required-mark">*</span></label>
+                        <input type="text" id="editFullName" name="full_name" autocomplete="off" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editNationalId">National ID No. <span class="required-mark">*</span></label>
+                        <input type="text" id="editNationalId" name="national_id" inputmode="numeric"
+                               autocomplete="off" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editPhone">Phone <span class="required-mark">*</span></label>
+                        <input type="tel" id="editPhone" name="phone" autocomplete="off" required>
+                    </div>
+
+                    <div class="form-group full">
+                        <label for="editEmail">Email <span class="required-mark">*</span></label>
+                        <input type="email" id="editEmail" name="email" autocomplete="off" required>
+                        <p class="form-hint" id="editEmailHint"></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editDob">Date of birth</label>
+                        <input type="date" id="editDob" name="date_of_birth">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editAddress">Physical address</label>
+                        <input type="text" id="editAddress" name="address" autocomplete="off">
+                    </div>
+                </div>
+
+                <p class="form-error" id="editMemberError" role="alert" hidden></p>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close-dialog>Cancel</button>
+                <button type="submit" class="btn btn-primary" id="saveEditButton">Save Changes</button>
+            </div>
+        </form>
+    </dialog>
+
+
+    <!-- ==============================
+        CONFIRM ACTIVATE / DEACTIVATE (pop-up)
+    =============================== -->
+
+    <dialog class="modal modal-small" id="statusDialog" aria-labelledby="statusTitle">
+        <div class="modal-header">
+            <h2 id="statusTitle"></h2>
+            <button type="button" class="icon-button" data-close-dialog aria-label="Close">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p class="confirm-text" id="statusText"></p>
+            <p class="form-error" id="statusError" role="alert" hidden></p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-close-dialog>Cancel</button>
+            <button type="button" class="btn btn-primary" id="confirmStatusButton"></button>
+        </div>
+    </dialog>
+
+
+    <!-- Scripts: Supabase library -> connection settings -> data layer -> shared shell -> this page -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
+    <script src="../../js/supabase-config.js" defer></script>
+    <script src="../../js/data.js" defer></script>
+    <script src="../../js/app.js" defer></script>
+    <script src="../../js/member-profile.js" defer></script>
+</body>
+</html>

@@ -332,7 +332,11 @@ SaccoData.ready.then(function () {
        --------------------------------------------------------------- */
 
     function fillMemberOptions() {
-        const members = Object.values(membersById).sort(function (a, b) {
+        // only ACTIVE members can have new transactions
+        // (the database enforces this too, see block-inactive-members.sql)
+        const members = Object.values(membersById).filter(function (m) {
+            return m.status === "active";
+        }).sort(function (a, b) {
             return a.full_name.localeCompare(b.full_name);
         });
         el.fieldMember.innerHTML = '<option value="">Select a member</option>' +

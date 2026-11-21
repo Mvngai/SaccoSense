@@ -74,6 +74,48 @@
         return result.data;
     }
 
+    /**
+     * Checks and tidies the member form before it is sent to the database.
+     * The database checks again (uniqueness, trigger in member-management.sql),
+     * but checking here gives the admin instant, readable messages.
+     * Returns a clean object containing only the columns the admin may write.
+     */
+    function cleanMemberInput(input) {
+        const fullName = String(input.full_name || "").trim().replace(/\s+/g, " ");
+        const nationalId = String(input.national_id || "").trim();
+        const email = String(input.email || "").trim().toLowerCase();
+        const address = String(input.address || "").trim();
+        const dateOfBirth = input.date_of_birth || "";
+
+        // Phone: accept "0712 345 678", "+254712345678" or "254712345678",
+        // and always store the 10-digit form "0712345678"
+        let phone = String(input.phone || "").replace(/[\s-]/g, "");
+        if (/^\+?254\d{9}$/.test(phone)) phone = "0" + phone.slice(-9);
+
+        if (fullName.split(" ").length < 2) throw new Error("Please enter the member's full name (at least two names).");
+        if (!/^[A-Za-z0-9]{5,15}$/.test(nationalId)) throw new Error("National ID should be 5–15 letters or numbers, with no spaces.");
+        if (!/^0[17]\d{8}$/.test(phone)) throw new Error("Please enter a valid Kenyan phone number, e.g. 0712 345 678.");
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Please enter a valid email address.");
+        if (dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) throw new Error("Please choose a valid date of birth.");
+
+        return {
+            full_name: fullName,
+            national_id: nationalId,
+            phone: phone,
+            email: email,
+            date_of_birth: dateOfBirth || null,   // optional: empty -> NULL
+            address: address || null              // optional: empty -> NULL
+        };
+    }
+
+    // Turns database errors about duplicates into plain English
+    function memberError(error) {
+        const message = error.message || "";
+        if (message.indexOf("members_email_key") !== -1) return new Error("Another member already uses this email address.");
+        if (message.indexOf("members_national_id_key") !== -1) return new Error("Another member already has this national ID number.");
+        return new Error(message);
+    }
+
     // Adds the figures the member dashboard shows to a loan record
     function summariseLoan(loan) {
         const outstanding = Math.max(0, loan.principal - loan.amount_repaid);
@@ -94,6 +136,7 @@
 
     let currentUser = null;
 
+    //loadCurrentUser() checks for a session, then reads that user's profile to get the role.
     async function loadCurrentUser() {
         currentUser = null;
 
@@ -142,6 +185,62 @@
 
         getMember: async function (memberId) {
             return check(await db.from("members").select("*").eq("member_id", memberId).maybeSingle());
+        },
+
+        /**
+         * Registers a new member and returns the saved record.
+         * We do NOT send a member_id: the database generates it (SS-0021, ...),
+         * and the savings balance starts at 0. (See member-management.sql.)
+         */
+        addMember: async function (input) {
+            const member = cleanMemberInput(input);
+            const result = await db.from("members").insert(member).select().single();
+            if (result.error) throw memberError(result.error);
+            return result.data;
+        },
+
+        // Saves changes to a member's personal details
+        updateMember: async function (memberId, input) {
+            const changes = cleanMemberInput(input);
+            const result = await db.from("members").update(changes)
+                .eq("member_id", memberId).select().single();
+            if (result.error) throw memberError(result.error);
+            return result.data;
+        },
+
+        // Activate / deactivate a member ("active" or "inactive")
+        setMemberStatus: async function (memberId, status) {
+            return check(await db.from("members").update({ status: status })
+                .eq("member_id", memberId).select().single());
+        },
+
+        /**
+         * Everything the member profile page needs, in one call:
+         * the member record, a short financial overview, and whether
+         * they have activated a login account yet.
+         * Returns null if no member has that ID.
+         */
+        getMemberProfile: async function (memberId) {
+            // the four queries run at the same time (Promise.all)
+            const results = await Promise.all([
+                db.from("members").select("*").eq("member_id", memberId).maybeSingle(),
+                db.from("loans").select("*").eq("member_id", memberId).eq("status", "active")
+                    .order("issued_at").limit(1).maybeSingle(),
+                db.from("transactions").select("*").eq("member_id", memberId)
+                    .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+                db.from("profiles").select("id").eq("member_id", memberId).maybeSingle()
+            ]);
+
+            const member = check(results[0]);
+            if (!member) return null;
+
+            const loan = check(results[1]);
+            return {
+                member: member,
+                loan: loan ? summariseLoan(loan) : null,
+                last_transaction: check(results[2]),
+                has_login: Boolean(check(results[3]))
+            };
         },
 
 
