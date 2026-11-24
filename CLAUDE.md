@@ -239,25 +239,33 @@ Before building anything ask questions (suggections are allowed) until a mutual 
   - `pages/admin/member-profile.html`, `js/member-profile.js` (also uses `members.css`): ONE page for all members, `member-profile.html?id=SS-0011`. Header (name, Member ID, status, joined), Personal Information, Financial Overview (savings, outstanding loan, next repayment, last transaction), Edit pop-up (email locked if the member has a login), Deactivate/Reactivate with confirmation. Members are never deleted.
   - `js/data.js`: new `addMember`, `updateMember`, `setMemberStatus`, `getMemberProfile`; `cleanMemberInput()` validates the form and stores phones as `07XXXXXXXX`; duplicate email/national ID give readable errors.
   - Dashboard sidebar "Members" link now opens `members.html`.
+- **Member account activation (25 Nov 2026), tested in the browser by me and working:** new member added → activated → confirmation email → logged in to the member dashboard; unknown email shows "isn't registered"; already-activated email (Brian) shows "already been activated".
+  - Supabase settings done: sign-ups ON, Confirm email ON, Site URL `http://127.0.0.1:5500/pages/login.html`, Redirect URLs `http://127.0.0.1:5500/**` (add `http://localhost:5500/**` too if not done). Change both to the Vercel address when deploying.
+  - The first activation attempt gave "TypeError: Failed to fetch"; the retry worked. Cause unknown (probably a network blip). Check the Network tab if it happens again.
+  - `supabase/member-activation.sql` (run): `check_activation_email(email)` (callable by anon, returns only `ok` / `not_member` / `already_activated`, never member data); trigger `on_auth_user_created_link_member` on `auth.users` creates a `profiles` row with role `member` when a new login's email matches a member record. It never creates admins.
+  - `pages/activate.html`, `js/activate.js` (reuse `login.css`): email + password + confirm password (min 8 chars). Unknown emails get a clear error (decision: option b, "isn't registered, contact your SACCO admin"), and already-activated emails are sent to sign in. After success, the page tells the member to click the confirmation link in their email.
+  - `js/data.js`: new `checkActivationEmail()` and `activateAccount()` (Supabase `signUp`, confirmation link redirects to `login.html`).
+  - `pages/login.html`: "First time here? Activate your account" link. `css/login.css`: success message colour, `.switch-page-link`, `[hidden]` rule.
+  - Decisions: inactive members CAN log in (the login already allows this, so no change). Only the email is checked, so email confirmation is the security check and must stay ON.
 
 ### Current stage
 Stages 1–4 (login, admin dashboard, member dashboard, member management) run on **Supabase** with real authentication and RLS. Data lives in the Supabase PostgreSQL database, not `localStorage`.
 
 ### Outstanding issues / notes
-- New members can't get a login yet. Agreed plan (option A), to build next: admin adds the member record; the member activates their own account on an "Activate account" page (Supabase signUp) and chooses their own password; a DB trigger links the login to the member record only if the email matches. Keep "Allow new users to sign up" ON and email confirmation ON for this. Still to decide then: should inactive members be able to log in?
+- Supabase's built-in email sender only allows a few emails per hour, so repeated activation tests may hit the limit.
+- If someone activates but never clicks the confirmation link, their `profiles` row already exists, so the admin can't change that member's email (the `members_before_save` lock). Unconfirmed logins can be deleted in Authentication -> Users.
 - **Speed:** pages are slower than with `localStorage` because each Supabase query is a network round trip, and pages wait for several in a row (the role lookup in `profiles` on every page, then the page data; the dashboard also loads members twice via `getStats()`). Possible fixes, declined for now: (A) remember the role in `sessionStorage` after login, (B) have the dashboard fetch everything once in parallel. Also check the Supabase project region.
 - The edited `record_transaction()` lives in `block-inactive-members.sql`; `schema.sql` still has the old version. If the database is ever rebuilt, run `schema.sql`, `member-management.sql`, then `block-inactive-members.sql`, in that order.
 - Supabase project credentials: only the URL and publishable key are in the project (`js/supabase-config.js`). A `.env` file isn't usable without a build tool; revisit if a build step is added later.
 - The repayment rate uses simple instalment counts stored on each loan record. It will need a proper repayment schedule table later.
-- The project is a Git repository (branch `main`), last commit "Sync latest local change (after connecting to supabase)". Today's stage 4 work is not committed yet. Nothing is deployed on Vercel.
+- The project is a Git repository (branch `main`). Stage 4 is committed ("Created Member Management page on Admin view"). The activation work was committed and pushed by me on 25 Nov 2026. Nothing is deployed on Vercel.
 - Recording a repayment doesn't yet move a loan's `next_due_date` forward or update instalment counts. That belongs to Repayment Tracking (stage 8).
 - Sample due dates are fixed (e.g. Brian's is 20/11/2026), so the Next Repayment card will show "overdue" once those dates pass.
 - Member dashboard mobile layout still to be checked in the browser.
 
 ### Next steps
 ### I'll come back to these later
-1. **Immediate:** commit and push the stage 4 work (with my clearance).
-2. Build the member account activation flow (option A, see outstanding issues).
-3. Continue with savings, loans, guarantors, repayments and reports in the agreed order.
+1. **Immediate:** walk through the activation code (trigger, security definer, anon RPC, signUp) so I can explain it.
+2. Continue with savings, loans, guarantors, repayments and reports in the agreed order.
 
 **Update this section (10) at the end of every development session.** Record what was completed, the current state of the project, outstanding issues and the immediate next task. Do not assume a feature is complete merely because its frontend has been created.

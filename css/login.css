@@ -252,6 +252,37 @@ body {
     color: #b42318;
 }
 
+/* shown after a successful account activation */
+.login-message.success {
+    color: #1a7f37;
+}
+
+/* lets the activate page hide form fields with the `hidden` attribute
+   (otherwise .form-group's display: flex would keep them visible) */
+[hidden] {
+    display: none !important;
+}
+
+
+/* ========== LINK BETWEEN LOGIN AND ACTIVATE PAGES ========== */
+
+.switch-page-link {
+    margin-top: 18px;
+    font-size: 14px;
+    text-align: center;
+    color: #555;
+}
+
+.switch-page-link a {
+    color: #5B0E2D;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.switch-page-link a:hover {
+    text-decoration: underline;
+}
+
 
 /* ========== MOBILE RESPONSIVENESS ========== */
 

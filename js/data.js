@@ -375,6 +375,45 @@
         signOut: async function () {
             currentUser = null;
             await db.auth.signOut();
+        },
+
+
+        /* ----- Account activation (pages/activate.html) ----- */
+
+        /**
+         * Asks the database whether this email can be activated.
+         * Returns "ok", "not_member" or "already_activated"
+         * (see check_activation_email() in supabase/member-activation.sql).
+         */
+        checkActivationEmail: async function (email) {
+            return check(await db.rpc("check_activation_email", { p_email: email }));
+        },
+
+        /**
+         * Creates the member's login with the password THEY chose.
+         * Supabase then emails them a confirmation link. The database
+         * trigger links the new login to their member record.
+         */
+        activateAccount: async function (email, password) {
+            const result = await db.auth.signUp({
+                email: email,
+                password: password,
+                options: {
+                    // where the confirmation link sends them: the login page
+                    // (works locally and on Vercel, because it's built from
+                    // the address of the current page)
+                    emailRedirectTo: new URL("login.html", window.location.href).href
+                }
+            });
+
+            if (result.error) {
+                const message = result.error.message || "";
+                // Supabase's free email service only sends a few emails per hour
+                if (message.toLowerCase().indexOf("rate limit") !== -1) {
+                    throw new Error("Too many activation emails have been sent. Please try again in an hour.");
+                }
+                throw new Error(message);
+            }
         }
     };
 })();
